@@ -66,7 +66,7 @@ const Index = () => {
               <div className="flex flex-wrap gap-4">
                 <Button 
                   size="lg" 
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/auth?role=restaurant')}
                   className="bg-primary hover:bg-primary/90 shadow-lg"
                 >
                   Join as Restaurant <ArrowRight className="ml-2 w-5 h-5" />
@@ -74,7 +74,7 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => navigate('/auth')}
+                  onClick={() => navigate('/auth?role=ngo')}
                   className="border-primary text-primary hover:bg-primary/10"
                 >
                   Join as NGO

@@ -139,41 +139,59 @@ const NGODashboard = () => {
     navigate('/');
   };
 
-  const handleAcceptDonation = async (donationId: string, restaurantId: string) => {
+  const handleAcceptDonation = async (donationId: string, acceptedQuantity: number, restaurantId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { error } = await supabase
-        .from('matches')
-        .insert({
+      // Start a database transaction
+      const { data: donation, error: donationError } = await supabase
+        .from('food_donations')
+        .select('*')
+        .eq('id', donationId)
+        .single();
+
+      if (donationError) throw donationError;
+
+      // Check if the donation is still available
+      if (donation.status !== 'available') {
+        throw new Error('This donation is no longer available');
+      }
+
+      // If accepting the full quantity, mark as reserved
+      if (acceptedQuantity >= donation.quantity) {
+        await supabase.rpc('accept_full_donation', {
+          donation_id: donationId,
+          ngo_id: session.user.id,
+          restaurant_id: restaurantId
+        });
+      } else {
+        // Create a partial acceptance
+        await supabase.rpc('accept_partial_donation', {
           donation_id: donationId,
           ngo_id: session.user.id,
           restaurant_id: restaurantId,
-          status: 'pending'
+          accepted_quantity: acceptedQuantity,
+          remaining_quantity: donation.quantity - acceptedQuantity
         });
-
-      if (error) throw error;
-
-      // Update donation status
-      await supabase
-        .from('food_donations')
-        .update({ status: 'reserved' })
-        .eq('id', donationId);
+      }
 
       toast({
         title: "Donation accepted!",
-        description: "You can now coordinate pickup with the restaurant."
+        description: `You've accepted ${acceptedQuantity} ${donation.unit} of ${donation.food_name}.`
       });
 
+      // Refresh data
       fetchAvailableDonations();
       fetchMyMatches();
     } catch (error: any) {
+      console.error('Error accepting donation:', error);
       toast({
         title: "Error accepting donation",
         description: error.message,
         variant: "destructive"
       });
+      throw error; // Re-throw to allow the dialog to handle the error state
     }
   };
 
@@ -208,6 +226,15 @@ const NGODashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/accepted-donations')}
+                className="hidden sm:flex"
+              >
+                <Package className="w-4 h-4 mr-2" />
+                My Donations
+              </Button>
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium text-foreground">{profile?.full_name}</p>
                 <p className="text-xs text-muted-foreground">{profile?.email}</p>

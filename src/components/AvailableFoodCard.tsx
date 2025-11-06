@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Package, Clock, Phone, Building } from "lucide-react";
 import { format } from "date-fns";
+import PartialAcceptDialog from "./PartialAcceptDialog";
 
 interface AvailableFoodCardProps {
   donation: {
@@ -22,10 +24,11 @@ interface AvailableFoodCardProps {
       phone: string | null;
     };
   };
-  onAccept: (donationId: string, restaurantId: string) => void;
+  onAccept: (donationId: string, acceptedQuantity: number, restaurantId: string) => Promise<void>;
 }
 
 const AvailableFoodCard = ({ donation, onAccept }: AvailableFoodCardProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   return (
     <Card className="p-6 bg-[var(--gradient-card)] border-border shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-lg)] transition-all">
       <div className="space-y-4">
@@ -72,12 +75,29 @@ const AvailableFoodCard = ({ donation, onAccept }: AvailableFoodCardProps) => {
           </div>
         </div>
 
-        <Button 
-          onClick={() => onAccept(donation.id, donation.restaurant_id)}
-          className="w-full bg-primary hover:bg-primary/90"
-        >
-          Accept Donation
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button 
+            onClick={() => setIsDialogOpen(true)}
+            className="w-full bg-primary hover:bg-primary/90"
+          >
+            Accept Donation
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => onAccept(donation.id, donation.quantity, donation.restaurant_id)}
+            className="w-full"
+          >
+            Accept Full {donation.quantity} {donation.unit}
+          </Button>
+        </div>
+        
+        <PartialAcceptDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          donation={donation}
+          onAccept={onAccept}
+          restaurantId={donation.restaurant_id}
+        />
       </div>
     </Card>
   );

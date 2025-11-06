@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +29,18 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [role, setRole] = useState<"restaurant" | "ngo">("restaurant");
+
+  // Set role from URL parameter if provided
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'restaurant' || roleParam === 'ngo') {
+      setRole(roleParam);
+      setMode('signup'); // Ensure we're on signup tab when coming from homepage buttons
+    }
+  }, [searchParams]);
 
   const [formData, setFormData] = useState({
     fullName: "",

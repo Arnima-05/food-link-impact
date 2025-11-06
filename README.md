@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
+# FoodBridge - Food Link Impact
 
-## Project info
+A platform connecting restaurants with NGOs to reduce food waste and help those in need.
 
-**URL**: https://lovable.dev/projects/7661e56b-cc6c-45c5-b817-2d75f9b557fd
+## Features
 
-## How can I edit this code?
+- **Restaurant Dashboard**: For restaurants to manage food donations
+- **NGO Dashboard**: For NGOs to view and coordinate food pickups
+- **Real-time Updates**: Stay updated with the latest donations and requests
+- **Secure Authentication**: Built with Supabase Auth
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/7661e56b-cc6c-45c5-b817-2d75f9b557fd) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
+## Technologies Used
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (Auth & Database)
+- React Query
 
-## How can I deploy this project?
+## Getting Started
 
-Simply open [Lovable](https://lovable.dev/projects/7661e56b-cc6c-45c5-b817-2d75f9b557fd) and click on Share -> Publish.
+### Prerequisites
 
-## Can I connect a custom domain to my Lovable project?
+- Node.js (v16 or later)
+- npm or yarn
+- Supabase account (for backend services)
 
-Yes, you can!
+### Installation
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Clone the repository:
+   ```sh
+   git clone <your-repo-url>
+   cd food-link-impact
+   ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+
+3. Set up environment variables:
+   - Create a `.env` file in the root directory
+   - Add your Supabase URL and anon key:
+     ```
+     VITE_SUPABASE_URL=your_supabase_url
+     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+     ```
+
+4. Start the development server:
+   ```sh
+   npm run dev
+   ```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+## Deployment
+
+This project can be deployed to any static hosting service (Vercel, Netlify, etc.) or containerized and deployed to a cloud provider.
+
+## License
+
+MIT

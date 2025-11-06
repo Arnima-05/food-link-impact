@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import RestaurantDashboard from "./pages/RestaurantDashboard";
 import NGODashboard from "./pages/NGODashboard";
+import AcceptedDonations from "./pages/AcceptedDonations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/restaurant" element={<RestaurantDashboard />} />
           <Route path="/ngo" element={<NGODashboard />} />
+          <Route path="/accepted-donations" element={<AcceptedDonations />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

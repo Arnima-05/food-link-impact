@@ -12,6 +12,25 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  
+  // Custom RPC functions
+  public: Database['public'] & {
+    rpc: {
+      get_user_role: (params: { user_id: string }) => Promise<{ data: { role: string } | null, error: any }>;
+      accept_full_donation: (params: { 
+        donation_id: string; 
+        ngo_id: string; 
+        restaurant_id: string;
+      }) => Promise<{ data: any, error: any }>;
+      accept_partial_donation: (params: {
+        donation_id: string;
+        ngo_id: string;
+        restaurant_id: string;
+        accepted_quantity: number;
+        remaining_quantity: number;
+      }) => Promise<{ data: any, error: any }>;
+    };
+  };
   public: {
     Tables: {
       food_donations: {
