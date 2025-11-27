@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { DonationsAPI, ProfilesAPI } from "@/lib/api";
+import { ensureUserOrRedirect } from "@/lib/user";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Leaf, LogOut, Plus, Package, Calendar, MapPin } from "lucide-react";
+import { Leaf, LogOut, Plus, Package, Calendar, MapPin, HeartHandshake } from "lucide-react";
 import DonationPostDialog from "@/components/DonationPostDialog";
 import DonationCard from "@/components/DonationCard";
 
@@ -34,67 +35,31 @@ const RestaurantDashboard = () => {
   const [showPostDialog, setShowPostDialog] = useState(false);
 
   useEffect(() => {
-    checkAuth();
-    fetchDonations();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate('/auth');
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    const u = ensureUserOrRedirect('restaurant');
+    if (!u) {
+      navigate('/auth?role=restaurant');
+      return;
+    }
+    setUser({ id: u.id });
+    fetchProfile(u.id);
+    fetchDonations(u.id);
   }, [navigate]);
 
-  const checkAuth = async () => {
+  const fetchProfile = async (id: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (roleData?.role !== 'restaurant') {
-        navigate('/ngo');
-        return;
-      }
-
-      setUser(session.user);
-
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      setProfile(profileData);
-    } catch (error) {
-      console.error('Auth check error:', error);
+      const p = await ProfilesAPI.getById(id);
+      setProfile(p);
+    } catch (err) {
+      console.error('Profile fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchDonations = async () => {
+  const fetchDonations = async (restaurantId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data, error } = await supabase
-        .from('food_donations')
-        .select('*')
-        .eq('restaurant_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setDonations(data || []);
+      const { donations } = await DonationsAPI.listByRestaurant(restaurantId);
+      setDonations(donations || []);
     } catch (error: any) {
       toast({
         title: "Error fetching donations",
@@ -105,7 +70,7 @@ const RestaurantDashboard = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    localStorage.clear();
     navigate('/');
   };
 
@@ -127,6 +92,7 @@ const RestaurantDashboard = () => {
 
   const activeDonations = donations.filter(d => d.status === 'available');
   const totalDonations = donations.length;
+  const contributionsCount = (profile as any)?.contributions_count ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,7 +124,7 @@ const RestaurantDashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid sm:grid-cols-3 gap-6 mb-8">
+        <div className="grid sm:grid-cols-4 gap-6 mb-8">
           <Card className="p-6 bg-[var(--gradient-card)] border-border shadow-[var(--shadow-card)]">
             <Package className="w-10 h-10 text-primary mb-3" />
             <div className="text-3xl font-bold text-foreground">{totalDonations}</div>
@@ -168,6 +134,11 @@ const RestaurantDashboard = () => {
             <Calendar className="w-10 h-10 text-accent mb-3" />
             <div className="text-3xl font-bold text-foreground">{activeDonations.length}</div>
             <p className="text-sm text-muted-foreground">Active Donations</p>
+          </Card>
+          <Card className="p-6 bg-[var(--gradient-card)] border-border shadow-[var(--shadow-card)]">
+            <HeartHandshake className="w-10 h-10 text-primary mb-3" />
+            <div className="text-3xl font-bold text-foreground">{contributionsCount}</div>
+            <p className="text-sm text-muted-foreground">Contributions</p>
           </Card>
           <Card className="p-6 bg-[var(--gradient-card)] border-border shadow-[var(--shadow-card)]">
             <MapPin className="w-10 h-10 text-primary mb-3" />

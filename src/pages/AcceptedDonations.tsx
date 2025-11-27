@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { MatchesAPI } from "@/lib/api";
+import { ensureUserOrRedirect } from "@/lib/user";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,45 +45,19 @@ const AcceptedDonations = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchAcceptedDonations();
+    const u = ensureUserOrRedirect('ngo');
+    if (!u) {
+      navigate('/auth?role=ngo');
+      return;
+    }
+    fetchAcceptedDonations(u.id);
   }, []);
 
-  const fetchAcceptedDonations = async () => {
+  const fetchAcceptedDonations = async (ngoId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          food_donations (
-            food_name,
-            food_type,
-            description,
-            pickup_time_start,
-            pickup_time_end,
-            expires_at,
-            location,
-            unit,
-            profiles (
-              full_name,
-              phone,
-              email
-            )
-          )
-        `)
-        .eq('ngo_id', session.user.id)
-        .order('matched_at', { ascending: false });
-
-      if (error) throw error;
-      
-      // Filter out any null donations (shouldn't happen, but just in case)
-      const validDonations = data.filter(d => d.food_donations !== null) as unknown as AcceptedDonation[];
-      setDonations(validDonations);
+      const { matches } = await MatchesAPI.listByNGO(ngoId);
+      const valid = (matches || []).filter((m: any) => m.food_donations !== null);
+      setDonations(valid as unknown as AcceptedDonation[]);
     } catch (error: any) {
       console.error('Error fetching accepted donations:', error);
       toast({
@@ -113,40 +88,12 @@ const AcceptedDonations = () => {
       );
       
       // Update the database
-      const { data, error } = await supabase
-        .from('matches')
-        .update({ 
-          status,
-          ...(status === 'picked_up' ? { picked_up_at: new Date().toISOString() } : {})
-        })
-        .eq('id', id)
-        .select(`
-          *,
-          food_donations (
-            food_name,
-            food_type,
-            description,
-            pickup_time_start,
-            pickup_time_end,
-            expires_at,
-            location,
-            unit,
-            profiles (
-              full_name,
-              phone,
-              email
-            )
-          )
-        `)
-        .single();
-
-      if (error) throw error;
-      
-      // Update the specific donation with the latest data
+      const { match } = await MatchesAPI.updateStatus(id, status);
       setDonations(currentDonations => 
         currentDonations.map(donation => 
-          donation.id === id 
-            ? { ...data, food_donations: data.food_donations } as AcceptedDonation
+          // our match id may be `_id`
+          ((donation as any)._id || donation.id) === id 
+            ? { ...(match as any) } as AcceptedDonation
             : donation
         )
       );

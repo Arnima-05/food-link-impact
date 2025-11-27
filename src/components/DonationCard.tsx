@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Package, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { DonationsAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface DonationCardProps {
@@ -42,12 +42,7 @@ const DonationCard = ({ donation, onUpdate }: DonationCardProps) => {
 
   const handleMarkFulfilled = async () => {
     try {
-      const { error } = await supabase
-        .from('food_donations')
-        .update({ status: 'fulfilled' })
-        .eq('id', donation.id);
-
-      if (error) throw error;
+      await DonationsAPI.fulfill(donation.id);
 
       toast({
         title: "Marked as fulfilled",

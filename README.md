@@ -7,7 +7,7 @@ A platform connecting restaurants with NGOs to reduce food waste and help those 
 - **Restaurant Dashboard**: For restaurants to manage food donations
 - **NGO Dashboard**: For NGOs to view and coordinate food pickups
 - **Real-time Updates**: Stay updated with the latest donations and requests
-- **Secure Authentication**: Built with Supabase Auth
+- **Secure Authentication**: Simple local session with MongoDB-backed profiles
 
 ## Technologies Used
 
@@ -16,7 +16,7 @@ A platform connecting restaurants with NGOs to reduce food waste and help those 
 - React
 - shadcn-ui
 - Tailwind CSS
-- Supabase (Auth & Database)
+- Express + MongoDB (API & Database)
 - React Query
 
 ## Getting Started
@@ -25,7 +25,7 @@ A platform connecting restaurants with NGOs to reduce food waste and help those 
 
 - Node.js (v16 or later)
 - npm or yarn
-- Supabase account (for backend services)
+- Local MongoDB instance (e.g., `mongodb://localhost:27017/`)
 
 ### Installation
 
@@ -40,13 +40,16 @@ A platform connecting restaurants with NGOs to reduce food waste and help those 
    npm install
    ```
 
-3. Set up environment variables:
-   - Create a `.env` file in the root directory
-   - Add your Supabase URL and anon key:
-     ```
-     VITE_SUPABASE_URL=your_supabase_url
-     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-     ```
+3. Start the API server (MongoDB required):
+   ```sh
+   npm run server
+   ```
+   The API runs at `http://localhost:8080` by default.
+
+4. Start the development server:
+   ```sh
+   npm run dev
+   ```
 
 4. Start the development server:
    ```sh

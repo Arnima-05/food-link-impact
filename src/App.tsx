@@ -9,6 +9,11 @@ import RestaurantDashboard from "./pages/RestaurantDashboard";
 import NGODashboard from "./pages/NGODashboard";
 import AcceptedDonations from "./pages/AcceptedDonations";
 import NotFound from "./pages/NotFound";
+import HowItWorks from "./pages/HowItWorks";
+import Donors from "./pages/Donors";
+import Recipients from "./pages/Recipients";
+import ContactUs from "./pages/ContactUs";
+import Volunteers from "./pages/Volunteers";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +29,11 @@ const App = () => (
           <Route path="/restaurant" element={<RestaurantDashboard />} />
           <Route path="/ngo" element={<NGODashboard />} />
           <Route path="/accepted-donations" element={<AcceptedDonations />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/donors" element={<Donors />} />
+          <Route path="/recipients" element={<Recipients />} />
+          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/volunteers" element={<Volunteers />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

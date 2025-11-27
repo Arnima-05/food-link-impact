@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Package, Clock, Phone, Building } from "lucide-react";
 import { format } from "date-fns";
 import PartialAcceptDialog from "./PartialAcceptDialog";
+import { Badge } from "@/components/ui/badge";
 
 interface AvailableFoodCardProps {
   donation: {
@@ -25,9 +26,10 @@ interface AvailableFoodCardProps {
     };
   };
   onAccept: (donationId: string, acceptedQuantity: number, restaurantId: string) => Promise<void>;
+  hasBadge?: boolean;
 }
 
-const AvailableFoodCard = ({ donation, onAccept }: AvailableFoodCardProps) => {
+const AvailableFoodCard = ({ donation, onAccept, hasBadge }: AvailableFoodCardProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   return (
     <Card className="p-6 bg-[var(--gradient-card)] border-border shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-lg)] transition-all">
@@ -50,6 +52,9 @@ const AvailableFoodCard = ({ donation, onAccept }: AvailableFoodCardProps) => {
           <div className="flex items-center gap-2 text-sm">
             <Building className="w-4 h-4 text-primary" />
             <span className="font-medium text-foreground">{donation.profiles.full_name}</span>
+            {hasBadge && (
+              <Badge className="ml-2" variant="outline">Contributor</Badge>
+            )}
           </div>
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="w-4 h-4 text-primary" />

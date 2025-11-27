@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { DonationsAPI } from "@/lib/api";
+import { getCurrentUser } from "@/lib/user";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,25 +53,21 @@ const DonationPostDialog = ({ open, onOpenChange, onSuccess }: DonationPostDialo
         quantity: parseFloat(formData.quantity)
       });
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const user = getCurrentUser();
+      if (!user || user.role !== 'restaurant') throw new Error("Not authenticated as restaurant");
 
-      const { error } = await supabase
-        .from('food_donations')
-        .insert({
-          restaurant_id: session.user.id,
-          food_name: validated.foodName,
-          food_type: validated.foodType,
-          quantity: validated.quantity,
-          unit: validated.unit,
-          description: validated.description || null,
-          pickup_time_start: validated.pickupTimeStart,
-          pickup_time_end: validated.pickupTimeEnd,
-          expires_at: validated.expiresAt,
-          location: validated.location
-        });
-
-      if (error) throw error;
+      await DonationsAPI.create({
+        restaurant_id: user.id,
+        food_name: validated.foodName,
+        food_type: validated.foodType,
+        quantity: validated.quantity,
+        unit: validated.unit,
+        description: validated.description || null,
+        pickup_time_start: validated.pickupTimeStart,
+        pickup_time_end: validated.pickupTimeEnd,
+        expires_at: validated.expiresAt,
+        location: validated.location,
+      });
 
       toast({
         title: "Donation posted!",

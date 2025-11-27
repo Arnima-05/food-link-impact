@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { DonationsAPI, MatchesAPI } from "@/lib/api";
+import { ensureUserOrRedirect, getCurrentUser } from "@/lib/user";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,74 +40,68 @@ const NGODashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [myMatches, setMyMatches] = useState<any[]>([]);
+  const [donorBadges, setDonorBadges] = useState<Record<string, boolean>>({});
+  const API_BASE = 'http://localhost:8080';
 
   useEffect(() => {
-    checkAuth();
+    const u = ensureUserOrRedirect('ngo');
+    if (!u) {
+      navigate('/auth');
+      return;
+    }
+    setUser(u);
+    setProfile(u.profile || null);
     fetchAvailableDonations();
     fetchMyMatches();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate('/auth');
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (roleData?.role !== 'ngo') {
-        navigate('/restaurant');
-        return;
-      }
-
-      setUser(session.user);
-
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      setProfile(profileData);
-    } catch (error) {
-      console.error('Auth check error:', error);
-    } finally {
-      setLoading(false);
+    const u = ensureUserOrRedirect('ngo');
+    if (!u) {
+      navigate('/auth');
+      return;
     }
+    setUser(u);
+    setProfile(u.profile || null);
+    setLoading(false);
   };
 
   const fetchAvailableDonations = async () => {
     try {
-      const { data, error } = await supabase
-        .from('food_donations')
-        .select(`
-          *,
-          profiles!food_donations_restaurant_id_fkey (
-            full_name,
-            location,
-            phone
-          )
-        `)
-        .eq('status', 'available')
-        .order('created_at', { ascending: false });
+      // Try server first (MongoDB)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      const resp = await fetch(`${API_BASE}/api/donations/available`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (resp.ok) {
+        const json = await resp.json();
+        const mapped = (json.donations || []).map((d: any) => ({
+          ...d,
+          profiles: d.restaurant_profile
+            ? {
+                full_name: d.restaurant_profile.full_name || '',
+                location: d.restaurant_profile.location || '',
+                phone: d.restaurant_profile.phone || null,
+              }
+            : { full_name: '', location: '', phone: null },
+        }));
+        setDonations(mapped);
+        return;
+      }
 
-      if (error) throw error;
-      setDonations(data || []);
+      // Fallback removed: Supabase is no longer used
+      const json = await DonationsAPI.listAvailable();
+      const mapped = (json.donations || []).map((d: any) => ({
+        ...d,
+        profiles: d.restaurant_profile
+          ? {
+              full_name: d.restaurant_profile.full_name || '',
+              location: d.restaurant_profile.location || '',
+              phone: d.restaurant_profile.phone || null,
+            }
+          : { full_name: '', location: '', phone: null },
+      }));
+      setDonations(mapped);
     } catch (error: any) {
       toast({
         title: "Error fetching donations",
@@ -118,74 +113,65 @@ const NGODashboard = () => {
 
   const fetchMyMatches = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('ngo_id', session.user.id)
-        .order('matched_at', { ascending: false });
-
-      if (error) throw error;
-      setMyMatches(data || []);
+      const u = getCurrentUser();
+      if (!u) return;
+      const json = await MatchesAPI.listByNGO(u.id);
+      setMyMatches(json.matches || []);
     } catch (error: any) {
       console.error('Error fetching matches:', error);
     }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('foodlink_user');
     navigate('/');
   };
 
   const handleAcceptDonation = async (donationId: string, acceptedQuantity: number, restaurantId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      // Start a database transaction
-      const { data: donation, error: donationError } = await supabase
-        .from('food_donations')
-        .select('*')
-        .eq('id', donationId)
-        .single();
-
-      if (donationError) throw donationError;
+      const u = getCurrentUser();
+      if (!u) return;
+      // Fetch current donation state from local list
+      const donation = donations.find((d) => d.id === donationId);
+      if (!donation) throw new Error('Donation not found');
 
       // Check if the donation is still available
       if (donation.status !== 'available') {
         throw new Error('This donation is no longer available');
       }
 
-      // If accepting the full quantity, mark as reserved
+      // Optimistic UI update BEFORE server calls
+      const prevDonations = [...donations];
       if (acceptedQuantity >= donation.quantity) {
-        await supabase.rpc('accept_full_donation', {
-          donation_id: donationId,
-          ngo_id: session.user.id,
-          restaurant_id: restaurantId
-        });
+        setDonations((list) => list.filter((d) => d.id !== donationId));
       } else {
-        // Create a partial acceptance
-        await supabase.rpc('accept_partial_donation', {
-          donation_id: donationId,
-          ngo_id: session.user.id,
-          restaurant_id: restaurantId,
-          accepted_quantity: acceptedQuantity,
-          remaining_quantity: donation.quantity - acceptedQuantity
-        });
+        const remaining = Number(donation.quantity) - Number(acceptedQuantity);
+        setDonations((list) => list.map((d) => d.id === donationId ? { ...d, quantity: remaining } : d));
       }
+
+      // Prefer Mongo API if available
+      await DonationsAPI.accept({
+        donationId,
+        ngoId: u.id,
+        restaurantId,
+        acceptedQuantity,
+      });
 
       toast({
         title: "Donation accepted!",
         description: `You've accepted ${acceptedQuantity} ${donation.unit} of ${donation.food_name}.`
       });
 
-      // Refresh data
-      fetchAvailableDonations();
+      // Mark donor badge locally so their other cards show the badge
+      setDonorBadges((prev) => ({ ...prev, [restaurantId]: true }));
+
+      // Refresh matches, and donations from server for consistency
       fetchMyMatches();
+      fetchAvailableDonations();
     } catch (error: any) {
       console.error('Error accepting donation:', error);
+      // Revert optimistic update on error
+      setDonations(prevDonations);
       toast({
         title: "Error accepting donation",
         description: error.message,
@@ -300,10 +286,11 @@ const NGODashboard = () => {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDonations.map((donation) => (
-                <AvailableFoodCard 
-                  key={donation.id} 
+                <AvailableFoodCard
+                  key={donation.id}
                   donation={donation}
                   onAccept={handleAcceptDonation}
+                  hasBadge={Boolean(donorBadges[donation.restaurant_id])}
                 />
               ))}
             </div>

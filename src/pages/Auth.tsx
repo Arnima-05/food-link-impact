@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { ProfilesAPI } from "@/lib/api";
+import { setCurrentUser } from "@/lib/user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,43 +60,27 @@ const Auth = () => {
     try {
       const validated = signupSchema.parse(formData);
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Register or update profile via API (password ignored in demo)
+      const profile = await ProfilesAPI.register({
+        full_name: validated.fullName,
         email: validated.email,
-        password: validated.password,
-        options: {
-          data: {
-            full_name: validated.fullName
-          },
-          emailRedirectTo: `${window.location.origin}/`
-        }
+        role,
+        organization_name: validated.organizationName,
+        phone: validated.phone || undefined,
+        location: validated.location,
+        address: validated.address,
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Signup failed");
-
-      // Update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: validated.fullName,
-          phone: validated.phone || null,
-          location: validated.location,
-          address: validated.address
-        })
-        .eq('id', authData.user.id);
-
-      if (profileError) throw profileError;
-
-      // Insert role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: role,
-          organization_name: validated.organizationName
-        });
-
-      if (roleError) throw roleError;
+      setCurrentUser({
+        id: profile.id,
+        role,
+        profile: {
+          full_name: profile.full_name,
+          email: profile.email,
+          location: profile.location,
+          phone: profile.phone,
+        },
+      });
 
       toast({
         title: "Account created!",
@@ -126,21 +111,19 @@ const Auth = () => {
         password: formData.password
       });
 
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: validated.email,
-        password: validated.password
+      // Login by email (demo). Password not used.
+      const profile = await ProfilesAPI.login(validated.email);
+
+      setCurrentUser({
+        id: profile.id,
+        role: profile.role,
+        profile: {
+          full_name: profile.full_name,
+          email: profile.email,
+          location: profile.location,
+          phone: profile.phone,
+        },
       });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Login failed");
-
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', authData.user.id)
-        .single();
-
-      if (roleError) throw roleError;
 
       toast({
         title: "Welcome back!",
@@ -148,7 +131,7 @@ const Auth = () => {
       });
 
       setTimeout(() => {
-        navigate(roleData.role === 'restaurant' ? '/restaurant' : '/ngo');
+        navigate(profile.role === 'restaurant' ? '/restaurant' : '/ngo');
       }, 500);
     } catch (error: any) {
       toast({
