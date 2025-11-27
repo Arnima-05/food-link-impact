@@ -31,6 +31,11 @@ interface AvailableFoodCardProps {
 
 const AvailableFoodCard = ({ donation, onAccept, hasBadge }: AvailableFoodCardProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const fmt = (value: string, pattern: string) => {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return format(d, pattern);
+  };
   return (
     <Card className="p-6 bg-[var(--gradient-card)] border-border shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-lg)] transition-all">
       <div className="space-y-4">
@@ -69,13 +74,13 @@ const AvailableFoodCard = ({ donation, onAccept, hasBadge }: AvailableFoodCardPr
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="w-4 h-4 text-primary" />
             <span className="text-muted-foreground">
-              Pickup: {format(new Date(donation.pickup_time_start), 'MMM dd, HH:mm')} - {format(new Date(donation.pickup_time_end), 'HH:mm')}
+              Pickup: {fmt(donation.pickup_time_start, 'MMM dd, HH:mm')} - {fmt(donation.pickup_time_end, 'HH:mm')}
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Clock className="w-4 h-4 text-accent" />
             <span className="text-muted-foreground">
-              Expires: {format(new Date(donation.expires_at), 'MMM dd, HH:mm')}
+              Expires: {fmt(donation.expires_at, 'MMM dd, HH:mm')}
             </span>
           </div>
         </div>

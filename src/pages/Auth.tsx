@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ProfilesAPI } from "@/lib/api";
+import { ProfilesAPI, apiGet } from "@/lib/api";
 import { setCurrentUser } from "@/lib/user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,13 +106,14 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      await apiGet("/api/health");
       const validated = loginSchema.parse({
         email: formData.email,
         password: formData.password
       });
 
       // Login by email (demo). Password not used.
-      const profile = await ProfilesAPI.login(validated.email);
+      const profile = await ProfilesAPI.login(validated.email, role);
 
       setCurrentUser({
         id: profile.id,
@@ -133,10 +134,13 @@ const Auth = () => {
       setTimeout(() => {
         navigate(profile.role === 'restaurant' ? '/restaurant' : '/ngo');
       }, 500);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Login failed";
+      const isNotFound = typeof msg === "string" && msg.includes("Profile not found");
+      const isOffline = typeof msg === "string" && (msg.includes("Failed to fetch") || msg.includes("ECONNREFUSED") || msg.includes("NetworkError"));
       toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials",
+        title: isOffline ? "Backend unreachable" : isNotFound ? "No account found" : "Login failed",
+        description: isOffline ? "Check server at http://localhost:8080" : isNotFound ? `No account found for ${formData.email}. Try Sign Up or ensure role is set to ${role}.` : msg,
         variant: "destructive"
       });
     } finally {

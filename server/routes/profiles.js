@@ -58,13 +58,25 @@ router.post('/register', async (req, res) => {
 // Login by email only (demo), return profile
 router.post('/login', async (req, res) => {
   try {
-    const { email } = req.body || {};
+    const { email, role } = req.body || {};
     if (!email) {
       return res.status(400).json({ error: 'email is required' });
     }
-    const profile = await Profile.findOne({ email });
+    let profile = await Profile.findOne({ email });
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+      if (role !== 'ngo' && role !== 'restaurant') {
+        return res.status(404).json({ error: 'Profile not found' });
+      }
+      const id = new mongoose.Types.ObjectId().toString();
+      profile = new Profile({
+        id,
+        full_name: email.split('@')[0],
+        email,
+        role,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      await profile.save();
     }
     return res.json(profile);
   } catch (err) {

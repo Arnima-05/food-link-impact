@@ -12,6 +12,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (_req, res) => {
+  res.json({ ok: true, service: 'Food Link Impact API' });
+});
+
 const MONGO_URL = process.env.MONGODB_URL || process.env.MONGO_URL || 'mongodb://localhost:27017/food_link_impact';
 const PORT = process.env.PORT || 8080;
 

@@ -44,15 +44,21 @@ const NGODashboard = () => {
   const API_BASE = 'http://localhost:8080';
 
   useEffect(() => {
-    const u = ensureUserOrRedirect('ngo');
-    if (!u) {
-      navigate('/auth');
-      return;
-    }
-    setUser(u);
-    setProfile(u.profile || null);
-    fetchAvailableDonations();
-    fetchMyMatches();
+    const init = async () => {
+      const u = ensureUserOrRedirect('ngo');
+      if (!u) {
+        navigate('/auth?role=ngo');
+        return;
+      }
+      setUser(u);
+      setProfile(u.profile || null);
+      try {
+        await Promise.allSettled([fetchAvailableDonations(), fetchMyMatches()]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, [navigate]);
 
   const checkAuth = async () => {
